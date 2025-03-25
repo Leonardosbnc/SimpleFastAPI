@@ -1,0 +1,11 @@
+ipython
+ipdb
+sdb
+pip-tools
+pytest
+pytest-asyncio
+pytest-order
+httpx
+black
+flake8
+pylint
