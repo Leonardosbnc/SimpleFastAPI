@@ -4,12 +4,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from api.config import settings
 from api.models import User
+from api.services.email import send_reset_password_email
+from api.serializers.auth import ForgotPassword
 from api.auth import (
     Token,
     RefreshToken,
     authenticate_user,
     create_access_token,
     create_refresh_token,
+    create_reset_password_token,
     validate_token,
     get_user,
 )
@@ -17,6 +20,9 @@ from api.auth import (
 
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.security.access_token_expire_minutes
 REFRESH_TOKEN_EXPIRE_MINUTES = settings.security.refresh_token_expire_minutes
+RESET_PASSWORD_TOKEN_EXPIRE_MINUTES = (
+    settings.security.reset_password_token_expire_minutes
+)
 
 router = APIRouter()
 
@@ -71,3 +77,17 @@ async def refresh_token(form_data: RefreshToken):
         "refresh_token": refresh_token,
         "token_type": "bearer",
     }
+
+
+@router.post("/forgot-password", status_code=204)
+def forgot_password(data: ForgotPassword):
+    user = get_user(data.username)
+    if user is None:
+        return
+
+    token_expires = timedelta(minutes=RESET_PASSWORD_TOKEN_EXPIRE_MINUTES)
+    token = create_reset_password_token(
+        data={"sub": user.username, "fresh": False},
+        expires_delta=token_expires,
+    )
+    send_reset_password_email(token, user.email)

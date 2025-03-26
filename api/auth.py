@@ -66,6 +66,9 @@ def create_access_token(
 
 
 create_refresh_token = partial(create_access_token, scope="refresh_token")
+create_reset_password_token = partial(
+    create_access_token, scope="reset_password"
+)
 
 
 def authenticate_user(
@@ -114,8 +117,9 @@ def get_current_user(
             algorithms=[ALGORITHM],  # pyright: ignore  # pyright: ignore
         )
         username: str = payload.get("sub")  # pyright: ignore
+        scope: str = payload.get("scope")  # pyright: ignore
 
-        if username is None:
+        if username is None or scope != "access_token":
             raise credentials_exception
         token_data = TokenData(username=username)
     except JWTError:
