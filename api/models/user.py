@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 from uuid import UUID, uuid4
 
@@ -17,8 +18,13 @@ class User(TimestamppedModel, table=True):
     is_admin: bool = Field(default=False)
 
     @model_validator(mode="before")
-    def format_unique_fields(self):
+    def validate_and_format_unique_fields(self):
         self.email = self.email.lower().replace(" ", "")
         self.username = self.username.lower().replace(" ", "")
+
+        if not re.fullmatch(
+            'r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)', self.email
+        ):
+            raise ValueError("Email is not valid")
 
         return self
