@@ -1,6 +1,7 @@
 import factory
 
 from api import models
+from api.security import get_password_hash
 
 
 class UserFactory(factory.alchemy.SQLAlchemyModelFactory):
@@ -10,5 +11,5 @@ class UserFactory(factory.alchemy.SQLAlchemyModelFactory):
 
     email = factory.Faker("email")
     username = factory.Faker("first_name")
-    password = factory.Faker("password")
+    password = get_password_hash("pass123")
     is_admin = False

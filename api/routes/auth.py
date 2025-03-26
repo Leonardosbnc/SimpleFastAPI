@@ -2,10 +2,13 @@ from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlmodel import Session
 from api.config import settings
+from api.db import ActiveSession
 from api.models import User
+from api.security import get_password_hash
 from api.services.email import send_reset_password_email
-from api.serializers.auth import ForgotPassword
+from api.serializers.auth import ForgotPassword, ChangePassword
 from api.auth import (
     Token,
     RefreshToken,
@@ -34,7 +37,7 @@ async def login_for_access_token(
     user = authenticate_user(get_user, form_data.username, form_data.password)
     if not user or not isinstance(user, User):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
@@ -80,7 +83,7 @@ async def refresh_token(form_data: RefreshToken):
 
 
 @router.post("/forgot-password", status_code=204)
-def forgot_password(data: ForgotPassword):
+async def forgot_password(data: ForgotPassword):
     user = get_user(data.username)
     if user is None:
         return
@@ -91,3 +94,13 @@ def forgot_password(data: ForgotPassword):
         expires_delta=token_expires,
     )
     send_reset_password_email(token, user.email)
+
+
+@router.post("/change-password", status_code=204)
+async def change_password(
+    data: ChangePassword, session: Session = ActiveSession
+):
+    user = await validate_token(token=data.token)
+    user.password = get_password_hash(data.password)
+    session.add(user)
+    session.commit()

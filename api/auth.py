@@ -117,9 +117,9 @@ def get_current_user(
             algorithms=[ALGORITHM],  # pyright: ignore  # pyright: ignore
         )
         username: str = payload.get("sub")  # pyright: ignore
-        scope: str = payload.get("scope")  # pyright: ignore
+        # scope: str = payload.get("scope")  # pyright: ignore
 
-        if username is None or scope != "access_token":
+        if username is None:
             raise credentials_exception
         token_data = TokenData(username=username)
     except JWTError:

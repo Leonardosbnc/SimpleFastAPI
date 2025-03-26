@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from api.security import get_password_hash
+from api.auth import create_reset_password_token
 from tests.factories import UserFactory
 
 
@@ -26,4 +27,15 @@ def test_bad_login(client: TestClient):
         data={"username": "admin", "password": "admin1"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
-    assert response.status_code == 401
+    assert response.status_code == 403
+
+
+def test_change_password(client: TestClient):
+    user = UserFactory.create()
+    token = create_reset_password_token({"sub": user.username})
+    response = client.post(
+        "/auth/change-password",
+        json={"token": token, "password": "new_pass123"},
+    )
+
+    assert response.status_code == 204
