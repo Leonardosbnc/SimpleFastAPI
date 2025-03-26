@@ -19,4 +19,4 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_MINUTES = 600
 
 [testing.db]
-uri = "postgresql://postgres:postgres@db:5432/test_db"
+uri = "sqlite:///{{ this.current_env | lower }}.db"

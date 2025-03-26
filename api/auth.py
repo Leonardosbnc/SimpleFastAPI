@@ -1,7 +1,7 @@
 """Token based auth"""
 
 from datetime import datetime, timedelta, timezone
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Annotated
 from functools import partial
 
 from fastapi import Depends, HTTPException, Request, status
@@ -90,7 +90,7 @@ def get_user(username) -> Optional[User]:
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),
-    request: Request | None = None,
+    request: Request = None,
     fresh=False,  # pyright: ignore
 ) -> User:
     """Get current user authenticated"""
@@ -139,7 +139,7 @@ async def get_current_active_user(
     return current_user
 
 
-AuthenticatedUser = Depends(get_current_active_user)
+AuthenticatedUser = Annotated[User, Depends(get_current_active_user)]
 
 
 async def validate_token(token: str = Depends(oauth2_scheme)) -> User:

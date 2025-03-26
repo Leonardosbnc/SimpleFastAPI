@@ -1,65 +1,54 @@
-from typing import Generator
+import os
 
 import pytest
 from fastapi.testclient import TestClient
-from api.config import settings
-from api.app import app  # type: ignore
-from sqlmodel import Session, create_engine
-from api.models import SQLModel
-from api.db import get_session
+from sqlmodel import SQLModel, Session
 
+os.environ["FORCE_ENV_FOR_DYNACONF"] = "testing"  # noqa
+
+from api.db import engine
+from api.app import app  # type: ignore
+from api.security import get_password_hash
+
+from .factories import UserFactory
 from .providers import set_factories_session
 
 
-engine = create_engine(
-    settings.db.uri,  # pyright: ignore
-)
+@pytest.fixture(scope="function")
+def client():
+    return TestClient(app)
+
+
+@pytest.fixture(scope="function")
+def auth_client():
+    UserFactory.create(
+        username="auth_user", password=get_password_hash("pass123")
+    )
+
+    client = TestClient(app)
+    token = client.post(
+        "/token",
+        data={"username": "auth_user", "password": "pass123"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    ).json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
+    return client
+
+
+def remove_db():
+    try:
+        os.remove("testing.db")
+    except FileNotFoundError:
+        pass
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_test_database():
-    """
-    Create the test database schema before any tests run,
-    and drop it after all tests are done.
-    """
-    SQLModel.metadata.create_all(bind=engine)  # Create tables
-    yield
-    SQLModel.metadata.drop_all(bind=engine)  # Drop tables after tests
-
-
-@pytest.fixture(scope="function")
-def db() -> Generator:
-    """
-    Create a new database session for each test and roll it back after the test.
-    """
-    connection = engine.connect()
-    transaction = connection.begin()
-    with Session(engine) as session:
-        yield session
-
-    session.close()
-    transaction.rollback()
-    connection.close()
-
-
-@pytest.fixture(scope="function")
-def client(db: Session) -> Generator[TestClient, None, None]:
-    """
-    Provide a TestClient that uses the test database session.
-    Override the get_db dependency to use the test session.
-    """
-
-    def override_get_db():
-        yield db
-
-    app.dependency_overrides[get_session] = override_get_db
-
-    with TestClient(app) as c:
-        yield c
-
-    app.dependency_overrides.clear()
+def initialize_db(request):
+    SQLModel.metadata.create_all(engine)
+    request.addfinalizer(remove_db)
 
 
 @pytest.fixture(autouse=True)
-def set_session_for_factories(db: Session):
-    set_factories_session(db)
+def set_session_for_factories():
+    with Session(engine) as session:
+        set_factories_session(session)
