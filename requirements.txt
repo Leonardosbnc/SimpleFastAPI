@@ -7,3 +7,4 @@ python-jose[cryptography]==3.4.0
 dynaconf==3.2.10
 psycopg2==2.9.10
 typer==0.15.2
+python-multipart==0.0.20
