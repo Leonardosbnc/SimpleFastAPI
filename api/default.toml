@@ -20,3 +20,5 @@ REFRESH_TOKEN_EXPIRE_MINUTES = 600
 
 [testing.db]
 uri = "sqlite:///{{ this.current_env | lower }}.db"
+connect_args = { check_same_thread = false }
+echo = false
