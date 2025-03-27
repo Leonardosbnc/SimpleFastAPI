@@ -7,7 +7,7 @@ from api.config import settings
 from api.db import ActiveSession
 from api.models import User
 from api.security import get_password_hash
-from api.services.email import send_reset_password_email
+from api.services.email import EmailService
 from api.serializers.auth import ForgotPassword, ChangePassword
 from api.auth import (
     Token,
@@ -93,7 +93,7 @@ async def forgot_password(data: ForgotPassword):
         data={"sub": user.username, "fresh": False},
         expires_delta=token_expires,
     )
-    send_reset_password_email(token, user.email)
+    EmailService().send_reset_password_email(token, user.email)
 
 
 @router.post("/change-password", status_code=204)
